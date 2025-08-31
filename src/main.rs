@@ -1,5 +1,7 @@
 //! Main webserver driver
 
+use std::time::Duration;
+
 use hyper::server::conn::http1;
 use hyper_util::rt::TokioIo;
 use rppal::pwm::Channel;
@@ -35,12 +37,14 @@ async fn main() {
     loop {
         let time = SimpleTime::now();
 
-        if time.minute() % 2 == 0 {
-            servo.move_clockwise().expect("Failed to move clockwise");
-        } else {
-            servo
+        match time.minute() % 3 {
+            0 => servo.move_clockwise().expect("Failed to move clockwise"),
+            1 => servo
                 .move_counterclockwise()
-                .expect("Failed to move clockwise");
+                .expect("Failed to move counterclockwise"),
+            _ => servo.stop().expect("Failed to stop"),
         }
+
+        std::thread::sleep(Duration::from_secs(45));
     }
 }
