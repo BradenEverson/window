@@ -2,11 +2,14 @@
 
 use hyper::server::conn::http1;
 use hyper_util::rt::TokioIo;
+use rppal::pwm::Channel;
 use tokio::net::TcpListener;
-use window::{service::WindowService, simple_time::SimpleTime};
+use window::{cts_servo::ContinuousServo, service::WindowService, simple_time::SimpleTime};
 
 #[tokio::main]
 async fn main() {
+    let mut servo = ContinuousServo::init(Channel::Pwm0).expect("Failed to create continous servo");
+
     let listener = TcpListener::bind("0.0.0.0:8201")
         .await
         .expect("Failed to bind to default");
@@ -28,6 +31,8 @@ async fn main() {
             });
         }
     });
+
+    servo.move_clockwise().expect("Failed to move clockwise");
 
     loop {
         let time = SimpleTime::now();
