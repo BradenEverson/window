@@ -41,5 +41,9 @@ async fn main() {
         std::thread::sleep(Duration::from_secs(2));
         servo.stop().expect("No stop");
         std::thread::sleep(Duration::from_secs(2));
+        servo.move_counterclockwise().expect("No ccw");
+        std::thread::sleep(Duration::from_secs(2));
+        servo.stop().expect("No stop");
+        std::thread::sleep(Duration::from_secs(2));
     }
 }
