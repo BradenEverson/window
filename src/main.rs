@@ -32,10 +32,15 @@ async fn main() {
         }
     });
 
-    servo.move_clockwise().expect("Failed to move clockwise");
-
     loop {
         let time = SimpleTime::now();
-        println!("{time}")
+
+        if time.minute() % 2 == 0 {
+            servo.move_clockwise().expect("Failed to move clockwise");
+        } else {
+            servo
+                .move_counterclockwise()
+                .expect("Failed to move clockwise");
+        }
     }
 }
