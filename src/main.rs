@@ -35,16 +35,11 @@ async fn main() {
     });
 
     loop {
-        let time = SimpleTime::now();
+        // let time = SimpleTime::now();
 
-        match time.minute() % 3 {
-            0 => servo.move_clockwise().expect("Failed to move clockwise"),
-            1 => servo
-                .move_counterclockwise()
-                .expect("Failed to move counterclockwise"),
-            _ => servo.stop().expect("Failed to stop"),
-        }
-
-        std::thread::sleep(Duration::from_secs(45));
+        servo.move_clockwise().expect("Failed to move clockwise");
+        std::thread::sleep(Duration::from_secs(2));
+        servo.stop().expect("No stop");
+        std::thread::sleep(Duration::from_secs(2));
     }
 }
