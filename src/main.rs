@@ -53,10 +53,12 @@ async fn main() {
 
         if let Some(start) = ctx.start {
             if let Some(end) = ctx.end {
-                if time > start && time < end && ctx.current == WindowState::Closed {
+                if time >= start && time < end && ctx.current == WindowState::Closed {
+                    println!("Opening");
                     open(&mut servo).expect("Failed to open");
                     ctx.current = WindowState::Opened
-                } else if ctx.current == WindowState::Opened {
+                } else if (time < start || time >= end) && ctx.current == WindowState::Opened {
+                    println!("Closing");
                     close(&mut servo).expect("Failed to close");
                     ctx.current = WindowState::Closed
                 }

@@ -12,9 +12,9 @@ pub const MINUTES_PER_HOUR: i64 = 60;
 #[derive(PartialEq, PartialOrd, Eq, Clone, Copy, Debug)]
 pub struct SimpleTime {
     /// Hour of day
-    hour: u32,
+    pub hour: u32,
     /// Minute of hour
-    minute: u32,
+    pub minute: u32,
 }
 
 impl Ord for SimpleTime {
