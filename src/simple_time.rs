@@ -1,16 +1,38 @@
 //! Simple time construct that really only cares about the time of the day
 
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::{
+    cmp::Ordering,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 pub const SECONDS_PER_DAY: i64 = 86400;
 pub const SECONDS_PER_HOUR: i64 = 3600;
 pub const MINUTES_PER_HOUR: i64 = 60;
 
+#[derive(PartialEq, PartialOrd, Eq, Clone, Copy, Debug)]
 pub struct SimpleTime {
     /// Hour of day
     hour: u32,
     /// Minute of hour
     minute: u32,
+}
+
+impl Ord for SimpleTime {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        if self.hour > other.hour || (self.hour == other.hour && self.minute > other.minute) {
+            Ordering::Greater
+        } else if self.hour == other.hour && self.minute == other.minute {
+            Ordering::Equal
+        } else {
+            Ordering::Less
+        }
+    }
+}
+
+impl std::fmt::Display for SimpleTime {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:02}:{:02}", self.hour, self.minute)
+    }
 }
 
 impl SimpleTime {
@@ -50,11 +72,5 @@ impl SimpleTime {
     /// Get the minute
     pub fn minute(&self) -> u32 {
         self.minute
-    }
-}
-
-impl std::fmt::Display for SimpleTime {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:02}:{:02}", self.hour, self.minute)
     }
 }

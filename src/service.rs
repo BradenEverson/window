@@ -6,10 +6,25 @@ use hyper::{
     body::{self, Bytes},
     service::Service,
 };
-use std::{fs::File, future::Future, io::Read, pin::Pin};
+use std::{fs::File, future::Future, io::Read, pin::Pin, sync::Arc};
+use tokio::sync::Mutex;
 
-#[derive(Default)]
-pub struct WindowService {}
+use crate::service::state::State;
+
+pub mod state;
+
+/// the Window HTTP service
+pub struct WindowService {
+    /// The shared state
+    state: Arc<Mutex<State>>,
+}
+
+impl WindowService {
+    /// Initializes a new window service
+    pub fn init(state: Arc<Mutex<State>>) -> Self {
+        Self { state }
+    }
+}
 
 impl Service<Request<body::Incoming>> for WindowService {
     type Response = Response<Full<Bytes>>;
@@ -19,23 +34,26 @@ impl Service<Request<body::Incoming>> for WindowService {
     fn call(&self, req: Request<body::Incoming>) -> Self::Future {
         let response = Response::builder();
 
-        let res = match *req.method() {
-            Method::GET => match req.uri().path() {
-                "/" => {
-                    let mut buf = vec![];
-                    let mut page = File::open("frontend/index.html").expect("Failed to find file");
-                    page.read_to_end(&mut buf)
-                        .expect("Failed to read to buffer");
-                    response
-                        .status(StatusCode::OK)
-                        .body(Full::new(Bytes::copy_from_slice(&buf)))
-                }
+        let res = async move {
+            match *req.method() {
+                Method::GET => match req.uri().path() {
+                    "/" => {
+                        let mut buf = vec![];
+                        let mut page =
+                            File::open("frontend/index.html").expect("Failed to find file");
+                        page.read_to_end(&mut buf)
+                            .expect("Failed to read to buffer");
+                        response
+                            .status(StatusCode::OK)
+                            .body(Full::new(Bytes::copy_from_slice(&buf)))
+                    }
 
+                    _ => unimplemented!(),
+                },
                 _ => unimplemented!(),
-            },
-            _ => unimplemented!(),
+            }
         };
 
-        Box::pin(async { res })
+        Box::pin(res)
     }
 }
