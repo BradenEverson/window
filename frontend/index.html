@@ -5,15 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Smart Blinds Control</title>
     <script src="https://unpkg.com/htmx.org@1.9.6"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
             --primary: #3498db;
             --primary-dark: #2980b9;
             --secondary: #2ecc71;
             --secondary-dark: #27ae60;
+            --accent: #e74c3c;
+            --accent-dark: #c0392b;
             --light: #ecf0f1;
             --dark: #34495e;
+            --darker: #2c3e50;
             --shadow: rgba(0, 0, 0, 0.1);
+            --card-shadow: 0 10px 30px var(--shadow);
+            --transition: all 0.3s ease;
         }
         
         * {
@@ -24,7 +30,7 @@
         }
         
         body {
-            background-color: #f5f7fa;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
             color: var(--dark);
             line-height: 1.6;
             padding: 20px;
@@ -37,113 +43,211 @@
         
         .container {
             background: white;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px var(--shadow);
+            border-radius: 20px;
+            box-shadow: var(--card-shadow);
             width: 100%;
             max-width: 500px;
             overflow: hidden;
+            transition: var(--transition);
         }
         
         header {
-            background: var(--primary);
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
             color: white;
             text-align: center;
-            padding: 25px 20px;
+            padding: 30px 20px;
+            position: relative;
         }
         
         h1 {
-            font-weight: 600;
+            font-weight: 700;
             margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            font-size: 28px;
         }
         
         .subtitle {
             font-weight: 300;
             opacity: 0.9;
+            margin-top: 10px;
+            font-size: 16px;
         }
         
         .form-container {
-            padding: 25px;
+            padding: 30px;
+        }
+        
+        .toggle-section {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+        
+        .toggle-btn {
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+            color: white;
+            border: none;
+            padding: 18px 35px;
+            border-radius: 50px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            box-shadow: 0 6px 15px rgba(231, 76, 60, 0.3);
+        }
+        
+        .toggle-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(231, 76, 60, 0.4);
+        }
+        
+        .toggle-btn:active {
+            transform: translateY(1px);
         }
         
         .time-section {
-            margin-bottom: 25px;
-            padding: 20px;
-            border-radius: 10px;
+            margin-bottom: 30px;
+            padding: 25px;
+            border-radius: 15px;
             background: var(--light);
+            transition: var(--transition);
+        }
+        
+        .time-section:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
         }
         
         .time-section h3 {
-            margin-bottom: 15px;
+            margin-bottom: 20px;
             display: flex;
             align-items: center;
             color: var(--dark);
-        }
-        
-        .time-section h3 i {
-            margin-right: 10px;
+            gap: 15px;
+            font-size: 20px;
         }
         
         .time-inputs {
             display: flex;
-            gap: 15px;
+            gap: 20px;
+            align-items: center;
         }
         
-        .input-group {
+        .time-display {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--darker);
+            min-width: 120px;
+            text-align: center;
+            padding: 10px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+        
+        .time-sliders {
             flex: 1;
         }
         
-        label {
-            display: block;
+        .slider-container {
+            margin-bottom: 20px;
+        }
+        
+        .slider-container:last-child {
+            margin-bottom: 0;
+        }
+        
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
             margin-bottom: 8px;
             font-weight: 500;
             color: var(--dark);
         }
         
-        select {
-            width: 100%;
-            padding: 12px 15px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            font-size: 16px;
-            background: white;
-            transition: border-color 0.3s;
+        .slider-value {
+            font-weight: 700;
+            color: var(--primary-dark);
         }
         
-        select:focus {
-            border-color: var(--primary);
+        .slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 10px;
+            border-radius: 5px;
+            background: #ddd;
             outline: none;
         }
         
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
+        .slider::-webkit-slider-thumb:hover {
+            background: var(--primary-dark);
+            transform: scale(1.1);
+        }
+        
+        .slider::-moz-range-thumb {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
         .open-time {
-            border-left: 4px solid var(--primary);
+            border-left: 5px solid var(--primary);
         }
         
         .close-time {
-            border-left: 4px solid var(--secondary);
+            border-left: 5px solid var(--secondary);
         }
         
-        button {
-            background: var(--primary);
+        button[type="submit"] {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
             color: white;
             border: none;
-            padding: 15px;
+            padding: 18px;
             width: 100%;
-            border-radius: 8px;
-            font-size: 16px;
+            border-radius: 12px;
+            font-size: 18px;
             font-weight: 600;
             cursor: pointer;
-            transition: background 0.3s;
-            margin-top: 10px;
+            transition: var(--transition);
+            margin-top: 15px;
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
         }
         
-        button:hover {
-            background: var(--primary-dark);
+        button[type="submit"]:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(52, 152, 219, 0.4);
+        }
+        
+        button[type="submit"]:active {
+            transform: translateY(1px);
         }
         
         #responseMessage {
-            margin-top: 20px;
+            margin-top: 25px;
             padding: 15px;
-            border-radius: 8px;
+            border-radius: 10px;
             text-align: center;
             font-weight: 500;
             display: none;
@@ -161,19 +265,37 @@
             display: block;
         }
         
-        .blinds-icon {
+        .icon-wrapper {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
             font-size: 24px;
-            margin-right: 10px;
         }
         
         @media (max-width: 500px) {
             .time-inputs {
                 flex-direction: column;
-                gap: 10px;
+                gap: 20px;
+            }
+            
+            .time-display {
+                width: 100%;
             }
             
             .container {
-                border-radius: 10px;
+                border-radius: 15px;
+            }
+            
+            header {
+                padding: 25px 15px;
+            }
+            
+            .form-container {
+                padding: 20px;
             }
         }
     </style>
@@ -181,73 +303,70 @@
 <body>
     <div class="container">
         <header>
-            <h1>🪟 Smart Blinds Control</h1>
+            <h1><div class="icon-wrapper"><i class="fas fa-blinds"></i></div> Smart Blinds Control</h1>
             <p class="subtitle">Set your blinds opening and closing schedule</p>
         </header>
         
         <div class="form-container">
+            <div class="toggle-section">
+                <button class="toggle-btn" hx-get="/toggle" hx-trigger="click">
+                    <i class="fas fa-exchange-alt"></i>
+                    Toggle Blinds Now
+                </button>
+            </div>
+            
             <form id="blindsForm" hx-post="/submit-schedule" hx-trigger="submit" hx-target="#responseMessage">
                 <div class="time-section open-time">
-                    <h3>🌅 Open Blinds At</h3>
+                    <h3><i class="fas fa-sun"></i> Open Blinds At</h3>
                     <div class="time-inputs">
-                        <div class="input-group">
-                            <label for="start_hour">Hour</label>
-                            <select id="start_hour" name="start_hour" required>
-                                <option value="">Select hour</option>
-                                <script>
-                                    for (let i = 0; i < 24; i++) {
-                                        const hour = i.toString().padStart(2, '0');
-                                        document.write(`<option value="${hour}">${hour}</option>`);
-                                    }
-                                </script>
-                            </select>
+                        <div class="time-display">
+                            <span id="openTimeDisplay">05:00</span>
                         </div>
-                        <div class="input-group">
-                            <label for="start_minute">Minute</label>
-                            <select id="start_minute" name="start_minute" required>
-                                <option value="">Select minute</option>
-                                <script>
-                                    for (let i = 0; i < 60; i += 5) {
-                                        const minute = i.toString().padStart(2, '0');
-                                        document.write(`<option value="${minute}">${minute}</option>`);
-                                    }
-                                </script>
-                            </select>
+                        <div class="time-sliders">
+                            <div class="slider-container">
+                                <div class="slider-label">
+                                    <span>Hour</span>
+                                    <span class="slider-value" id="openHourValue">05</span>
+                                </div>
+                                <input type="range" min="0" max="23" value="5" class="slider" id="openHourSlider">
+                            </div>
+                            <div class="slider-container">
+                                <div class="slider-label">
+                                    <span>Minute</span>
+                                    <span class="slider-value" id="openMinuteValue">00</span>
+                                </div>
+                                <input type="range" min="0" max="55" value="0" step="5" class="slider" id="openMinuteSlider">
+                            </div>
                         </div>
                     </div>
                 </div>
                 
                 <div class="time-section close-time">
-                    <h3>🌇 Close Blinds At</h3>
+                    <h3><i class="fas fa-moon"></i> Close Blinds At</h3>
                     <div class="time-inputs">
-                        <div class="input-group">
-                            <label for="end_hour">Hour</label>
-                            <select id="end_hour" name="end_hour" required>
-                                <option value="">Select hour</option>
-                                <script>
-                                    for (let i = 0; i < 24; i++) {
-                                        const hour = i.toString().padStart(2, '0');
-                                        document.write(`<option value="${hour}">${hour}</option>`);
-                                    }
-                                </script>
-                            </select>
+                        <div class="time-display">
+                            <span id="closeTimeDisplay">18:00</span>
                         </div>
-                        <div class="input-group">
-                            <label for="end_minute">Minute</label>
-                            <select id="end_minute" name="end_minute" required>
-                                <option value="">Select minute</option>
-                                <script>
-                                    for (let i = 0; i < 60; i += 5) {
-                                        const minute = i.toString().padStart(2, '0');
-                                        document.write(`<option value="${minute}">${minute}</option>`);
-                                    }
-                                </script>
-                            </select>
+                        <div class="time-sliders">
+                            <div class="slider-container">
+                                <div class="slider-label">
+                                    <span>Hour</span>
+                                    <span class="slider-value" id="closeHourValue">18</span>
+                                </div>
+                                <input type="range" min="0" max="23" value="18" class="slider" id="closeHourSlider">
+                            </div>
+                            <div class="slider-container">
+                                <div class="slider-label">
+                                    <span>Minute</span>
+                                    <span class="slider-value" id="closeMinuteValue">00</span>
+                                </div>
+                                <input type="range" min="0" max="55" value="0" step="5" class="slider" id="closeMinuteSlider">
+                            </div>
                         </div>
                     </div>
                 </div>
                 
-                <button type="submit">Save Schedule</button>
+                <button type="submit"><i class="fas fa-save"></i> Save Schedule</button>
                 
                 <div id="responseMessage"></div>
             </form>
@@ -256,16 +375,87 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('start_hour').value = '05';
-            document.getElementById('start_minute').value = '00';
-            document.getElementById('end_hour').value = '18';
-            document.getElementById('end_minute').value = '00';
+            const openHourSlider = document.getElementById('openHourSlider');
+            const openMinuteSlider = document.getElementById('openMinuteSlider');
+            const closeHourSlider = document.getElementById('closeHourSlider');
+            const closeMinuteSlider = document.getElementById('closeMinuteSlider');
+            
+            const openHourValue = document.getElementById('openHourValue');
+            const openMinuteValue = document.getElementById('openMinuteValue');
+            const closeHourValue = document.getElementById('closeHourValue');
+            const closeMinuteValue = document.getElementById('closeMinuteValue');
+            
+            const openTimeDisplay = document.getElementById('openTimeDisplay');
+            const closeTimeDisplay = document.getElementById('closeTimeDisplay');
+            
+            function formatTimeValue(value) {
+                return value.toString().padStart(2, '0');
+            }
+            
+            function updateTimeDisplay(displayElement, hours, minutes) {
+                displayElement.textContent = `${formatTimeValue(hours)}:${formatTimeValue(minutes)}`;
+            }
+            
+            function updateHiddenInputs() {
+                document.getElementById('start_hour').value = formatTimeValue(openHourSlider.value);
+                document.getElementById('start_minute').value = formatTimeValue(openMinuteSlider.value);
+                document.getElementById('end_hour').value = formatTimeValue(closeHourSlider.value);
+                document.getElementById('end_minute').value = formatTimeValue(closeMinuteSlider.value);
+            }
+            
+            updateTimeDisplay(openTimeDisplay, openHourSlider.value, openMinuteSlider.value);
+            updateTimeDisplay(closeTimeDisplay, closeHourSlider.value, closeMinuteSlider.value);
+            
+            openHourSlider.addEventListener('input', function() {
+                openHourValue.textContent = formatTimeValue(this.value);
+                updateTimeDisplay(openTimeDisplay, this.value, openMinuteSlider.value);
+                updateHiddenInputs();
+            });
+            
+            openMinuteSlider.addEventListener('input', function() {
+                openMinuteValue.textContent = formatTimeValue(this.value);
+                updateTimeDisplay(openTimeDisplay, openHourSlider.value, this.value);
+                updateHiddenInputs();
+            });
+            
+            closeHourSlider.addEventListener('input', function() {
+                closeHourValue.textContent = formatTimeValue(this.value);
+                updateTimeDisplay(closeTimeDisplay, this.value, closeMinuteSlider.value);
+                updateHiddenInputs();
+            });
+            
+            closeMinuteSlider.addEventListener('input', function() {
+                closeMinuteValue.textContent = formatTimeValue(this.value);
+                updateTimeDisplay(closeTimeDisplay, closeHourSlider.value, this.value);
+                updateHiddenInputs();
+            });
+            
+            const form = document.getElementById('blindsForm');
+            const hiddenInputs = [
+                {id: 'start_hour', name: 'start_hour', value: formatTimeValue(openHourSlider.value)},
+                {id: 'start_minute', name: 'start_minute', value: formatTimeValue(openMinuteSlider.value)},
+                {id: 'end_hour', name: 'end_hour', value: formatTimeValue(closeHourSlider.value)},
+                {id: 'end_minute', name: 'end_minute', value: formatTimeValue(closeMinuteSlider.value)}
+            ];
+            
+            hiddenInputs.forEach(input => {
+                const hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.id = input.id;
+                hiddenInput.name = input.name;
+                hiddenInput.value = input.value;
+                form.appendChild(hiddenInput);
+            });
             
             document.body.addEventListener('htmx:afterRequest', function(evt) {
                 const responseMsg = document.getElementById('responseMessage');
                 if (evt.detail.successful) {
                     responseMsg.textContent = 'Schedule saved successfully!';
                     responseMsg.className = 'success';
+                    
+                    setTimeout(() => {
+                        responseMsg.style.display = 'none';
+                    }, 3000);
                 } else {
                     responseMsg.textContent = 'Error saving schedule. Please try again.';
                     responseMsg.className = 'error';

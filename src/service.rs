@@ -62,9 +62,9 @@ impl Service<Request<body::Incoming>> for WindowService {
                     "/toggle" => {
                         send.send(Message::Toggle).await.expect("Failed to send");
 
-                        response
-                            .status(StatusCode::OK)
-                            .body(Full::new(Bytes::from("Toggle sent :)")))
+                        response.status(StatusCode::OK).body(Full::new(Bytes::from(
+                            "<i class=\"fas fa-exchange-alt\"></i>Toggle Blinds Now",
+                        )))
                     }
 
                     _ => unimplemented!(),

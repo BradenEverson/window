@@ -50,13 +50,21 @@ async fn main() {
     loop {
         let time = SimpleTime::now();
 
-        if let Some(msg) = rx.blocking_recv() {
+        if let Some(msg) = rx.recv().await {
             match msg {
                 Message::Start(st) => state.start = Some(st),
                 Message::End(et) => state.end = Some(et),
                 Message::Toggle => match state.current {
-                    WindowState::Opened => close(&mut servo).expect("Failed to close"),
-                    WindowState::Closed => open(&mut servo).expect("Failed to open"),
+                    WindowState::Opened => {
+                        println!("Close");
+                        state.current = WindowState::Closed;
+                        close(&mut servo).expect("Failed to close");
+                    }
+                    WindowState::Closed => {
+                        println!("Open");
+                        state.current = WindowState::Opened;
+                        open(&mut servo).expect("Failed to open");
+                    }
                 },
             };
         }
