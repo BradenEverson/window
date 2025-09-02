@@ -59,6 +59,14 @@ impl Service<Request<body::Incoming>> for WindowService {
                             .body(Full::new(Bytes::copy_from_slice(&buf)))
                     }
 
+                    "/toggle" => {
+                        send.send(Message::Toggle).await.expect("Failed to send");
+
+                        response
+                            .status(StatusCode::OK)
+                            .body(Full::new(Bytes::from("Toggle sent :)")))
+                    }
+
                     _ => unimplemented!(),
                 },
 
