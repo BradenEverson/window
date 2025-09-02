@@ -1,15 +1,15 @@
 //! Main webserver driver
 
-use std::{sync::Arc, time::Duration};
+use std::time::Duration;
 
 use hyper::server::conn::http1;
 use hyper_util::rt::TokioIo;
 use rppal::pwm::Channel;
-use tokio::{net::TcpListener, sync::Mutex};
+use tokio::net::TcpListener;
 use window::{
     cts_servo::ContinuousServo,
     service::{
-        WindowService,
+        Message, WindowService,
         state::{State, WindowState},
     },
     simple_time::SimpleTime,
@@ -20,13 +20,14 @@ const OPEN_CLOSE_INTERVAL: u64 = 8;
 #[tokio::main]
 async fn main() {
     let mut servo = ContinuousServo::init(Channel::Pwm0).expect("Failed to create continous servo");
-    let state = Arc::new(Mutex::new(State::default()));
+    let mut state = State::default();
+
+    let (tx, mut rx) = tokio::sync::mpsc::channel(16);
 
     let listener = TcpListener::bind("0.0.0.0:8201")
         .await
         .expect("Failed to bind to default");
 
-    let state_copy = state.clone();
     tokio::spawn(async move {
         loop {
             let (socket, _) = listener
@@ -36,9 +37,9 @@ async fn main() {
 
             let io = TokioIo::new(socket);
 
-            let state_task = state_copy.clone();
+            let tx_copy = tx.clone();
             tokio::spawn(async move {
-                let service = WindowService::init(state_task);
+                let service = WindowService::init(tx_copy);
                 if let Err(e) = http1::Builder::new().serve_connection(io, service).await {
                     eprintln!("Error serving connection: {e}");
                 }
@@ -49,18 +50,24 @@ async fn main() {
     loop {
         let time = SimpleTime::now();
 
-        let mut ctx = state.lock().await;
+        if let Some(msg) = rx.blocking_recv() {
+            match msg {
+                Message::Start(st) => state.start = Some(st),
+                Message::End(et) => state.end = Some(et),
+                _ => {}
+            };
+        }
 
-        if let Some(start) = ctx.start {
-            if let Some(end) = ctx.end {
-                if time >= start && time < end && ctx.current == WindowState::Closed {
+        if let Some(start) = state.start {
+            if let Some(end) = state.end {
+                if time >= start && time < end && state.current == WindowState::Closed {
                     println!("Opening");
                     open(&mut servo).expect("Failed to open");
-                    ctx.current = WindowState::Opened
-                } else if (time < start || time >= end) && ctx.current == WindowState::Opened {
+                    state.current = WindowState::Opened
+                } else if (time < start || time >= end) && state.current == WindowState::Opened {
                     println!("Closing");
                     close(&mut servo).expect("Failed to close");
-                    ctx.current = WindowState::Closed
+                    state.current = WindowState::Closed
                 }
             }
         }

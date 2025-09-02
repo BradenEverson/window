@@ -6,23 +6,35 @@ use hyper::{
     body::{self, Bytes},
     service::Service,
 };
-use std::{fs::File, future::Future, io::Read, pin::Pin, sync::Arc};
-use tokio::sync::Mutex;
+use std::{fs::File, future::Future, io::Read, pin::Pin};
 
-use crate::{service::state::State, simple_time::SimpleTime};
+use crate::simple_time::SimpleTime;
 
 pub mod state;
 
+/// A message that can be sent to the main control system
+#[derive(Clone, Copy, Debug)]
+pub enum Message {
+    /// Send a new open blind time
+    Start(SimpleTime),
+    /// Send a new close blind time
+    End(SimpleTime),
+    /// Immediately request to open
+    ImmediateStart,
+    /// Immediately request to close
+    ImmediateEnd,
+}
+
 /// the Window HTTP service
 pub struct WindowService {
-    /// The shared state
-    state: Arc<Mutex<State>>,
+    /// The message sending end
+    send: tokio::sync::mpsc::Sender<Message>,
 }
 
 impl WindowService {
     /// Initializes a new window service
-    pub fn init(state: Arc<Mutex<State>>) -> Self {
-        Self { state }
+    pub fn init(send: tokio::sync::mpsc::Sender<Message>) -> Self {
+        Self { send }
     }
 }
 
@@ -33,7 +45,7 @@ impl Service<Request<body::Incoming>> for WindowService {
 
     fn call(&self, req: Request<body::Incoming>) -> Self::Future {
         let response = Response::builder();
-        let state = self.state.clone();
+        let send = self.send.clone();
 
         let res = async move {
             match *req.method() {
@@ -76,14 +88,14 @@ impl Service<Request<body::Incoming>> for WindowService {
                             }
                         }
 
-                        let mut ctx = state.lock().await;
-
                         if let Some(hour) = start_hour {
                             if let Some(minute) = start_minute {
                                 let hour: u32 = hour.parse().expect("Non-number hour");
                                 let minute: u32 = minute.parse().expect("Non-number minute");
 
-                                ctx.start = Some(SimpleTime { hour, minute });
+                                send.send(Message::Start(SimpleTime { hour, minute }))
+                                    .await
+                                    .expect("Failed to send")
                             }
                         }
 
@@ -92,7 +104,9 @@ impl Service<Request<body::Incoming>> for WindowService {
                                 let hour: u32 = hour.parse().expect("Non-number hour");
                                 let minute: u32 = minute.parse().expect("Non-number minute");
 
-                                ctx.end = Some(SimpleTime { hour, minute });
+                                send.send(Message::End(SimpleTime { hour, minute }))
+                                    .await
+                                    .expect("Failed to send")
                             }
                         }
 
