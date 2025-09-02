@@ -54,7 +54,10 @@ async fn main() {
             match msg {
                 Message::Start(st) => state.start = Some(st),
                 Message::End(et) => state.end = Some(et),
-                _ => {}
+                Message::Toggle => match state.current {
+                    WindowState::Opened => close(&mut servo).expect("Failed to close"),
+                    WindowState::Closed => open(&mut servo).expect("Failed to open"),
+                },
             };
         }
 

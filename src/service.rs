@@ -19,10 +19,8 @@ pub enum Message {
     Start(SimpleTime),
     /// Send a new close blind time
     End(SimpleTime),
-    /// Immediately request to open
-    ImmediateStart,
-    /// Immediately request to close
-    ImmediateEnd,
+    /// Immediately request to toggle the state of the blinds
+    Toggle,
 }
 
 /// the Window HTTP service
