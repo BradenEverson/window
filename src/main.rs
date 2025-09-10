@@ -15,7 +15,7 @@ use window::{
     simple_time::SimpleTime,
 };
 
-const OPEN_CLOSE_INTERVAL: u64 = 8;
+const OPEN_CLOSE_INTERVAL: u64 = 10;
 
 #[tokio::main]
 async fn main() {
