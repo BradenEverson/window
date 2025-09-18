@@ -48,7 +48,7 @@ async fn main() {
         }
     });
 
-    let mut adapter = WS28xxSpiAdapter::new("/dev/spidev0.1").expect("No SPI device");
+    let mut adapter = WS28xxSpiAdapter::new("/dev/spidev0.0").expect("No SPI device");
 
     {
         let mut rgb_values = vec![];
