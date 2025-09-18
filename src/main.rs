@@ -48,14 +48,16 @@ async fn main() {
         }
     });
 
-    let mut adapter = WS28xxSpiAdapter::new("/dev/spidev0.0").expect("No SPI device");
+    let mut adapter = WS28xxSpiAdapter::new("/dev/spidev0.1").expect("No SPI device");
 
     {
         let mut rgb_values = vec![];
         rgb_values.push((255, 0, 0));
         rgb_values.push((0, 255, 0));
         rgb_values.push((0, 0, 255));
-        adapter.write_rgb(&rgb_values).unwrap();
+        adapter
+            .write_rgb(&rgb_values)
+            .expect("Failed to set the 3 leds");
     }
 
     loop {
