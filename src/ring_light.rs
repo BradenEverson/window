@@ -1,7 +1,5 @@
 //! Ring Light Impl
 
-use std::time::Duration;
-
 use ws2818_rgb_led_spi_driver::{adapter_gen::WS28xxAdapter, adapter_spi::WS28xxSpiAdapter};
 
 /// Control for a neopixel ring
@@ -21,15 +19,14 @@ impl NeoPixelRing {
         let mut rgb_values = vec![];
 
         for _ in 0..leds {
-            rgb_values.push((255, 0, 0));
-        }
-
-        for _ in leds..12 {
             rgb_values.push((255, 255, 255));
         }
 
+        for _ in leds..12 {
+            rgb_values.push((0, 0, 0));
+        }
+
         self.spi.write_rgb(&rgb_values)?;
-        std::thread::sleep(Duration::from_millis(10));
         Ok(())
     }
 }
