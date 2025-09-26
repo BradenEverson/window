@@ -27,7 +27,6 @@ async fn main() {
     let mut state = State::default();
     let mut ring = NeoPixelRing::new("/dev/spidev0.0").expect("Failed to create NeoPixel ring");
 
-    // Initialize I2C for ADC
     let mut adc = I2c::new().expect("Failed to initialize I2C");
     adc.set_slave_address(ADC_I2C_ADDRESS)
         .expect("Failed to set I2C address");
@@ -130,7 +129,7 @@ fn read_adc_value(adc: &mut I2c) -> Result<i16, rppal::i2c::Error> {
     std::thread::sleep(Duration::from_millis(10));
 
     let mut buffer = [0u8; 2];
-    adc.write(&[0x00])?; // Set pointer to conversion register
+    adc.write(&[0x00])?;
     adc.read(&mut buffer)?;
 
     Ok(i16::from_be_bytes(buffer))
