@@ -56,6 +56,10 @@ async fn main() {
         }
     });
 
+    let mut ring = NeoPixelRing::new("/dev/spidev0.0").expect("Failed to create NeoPixel ring");
+    ring.light_em_up(0).expect("Light ;(");
+    let mut on = 0;
+
     loop {
         let time = SimpleTime::now();
 
@@ -68,9 +72,10 @@ async fn main() {
                 let led_count = (12f32 * mapped) as u8;
 
                 println!("{:.2}% - {led_count}", mapped * 100f32);
-                let mut ring =
-                    NeoPixelRing::new("/dev/spidev0.0").expect("Failed to create NeoPixel ring");
-                ring.light_em_up(led_count).expect("Light ;(");
+                if on != led_count {
+                    on = led_count;
+                    ring.light_em_up(led_count).expect("Light ;(");
+                }
             }
             Err(e) => {
                 eprintln!("Failed to read ADC value: {}", e);
