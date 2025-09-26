@@ -4,6 +4,7 @@ use std::time::Duration;
 
 use hyper::server::conn::http1;
 use hyper_util::rt::TokioIo;
+use rppal::i2c::I2c;
 use rppal::pwm::Channel;
 use tokio::net::TcpListener;
 use window::{
@@ -17,12 +18,21 @@ use window::{
 };
 
 const OPEN_CLOSE_INTERVAL: u64 = 10;
+const ADC_I2C_ADDRESS: u16 = 0x48;
+const ADS1115_CONFIG: [u8; 3] = [0x01, 0xC3, 0x83];
 
 #[tokio::main]
 async fn main() {
-    let mut servo = ContinuousServo::init(Channel::Pwm0).expect("Failed to create continous servo");
+    let mut servo =
+        ContinuousServo::init(Channel::Pwm0).expect("Failed to create continuous servo");
     let mut state = State::default();
-    let mut ring = NeoPixelRing::new("/dev/spidev0.0").expect(":(");
+    let mut ring = NeoPixelRing::new("/dev/spidev0.0").expect("Failed to create NeoPixel ring");
+
+    let mut adc = I2c::new().expect("Failed to initialize I2C");
+    adc.set_slave_address(ADC_I2C_ADDRESS)
+        .expect("Failed to set I2C address");
+
+    adc.write(&ADS1115_CONFIG).expect("Failed to configure ADC");
 
     let (tx, mut rx) = tokio::sync::mpsc::channel(16);
 
@@ -49,14 +59,29 @@ async fn main() {
         }
     });
 
-    ring.light_em_up(0).expect("sad");
-
-    tokio::spawn(async move { loop {} });
+    ring.light_em_up(0)
+        .expect("Failed to initialize ring lights");
 
     loop {
         let time = SimpleTime::now();
 
-        if let Some(msg) = rx.recv().await {
+        if let Ok(adc_value) = read_adc_value(&mut adc) {
+            let percent = (adc_value as f32 / 32767.0 * 100.0).min(100.0);
+            let leds_to_light = (percent / 100.0 * 12.0).round() as u8;
+
+            println!(
+                "ADC Value: {}, Percent: {}%, LEDs: {}",
+                adc_value, percent, leds_to_light
+            );
+
+            if let Err(e) = ring.light_em_up(leds_to_light) {
+                eprintln!("Failed to update ring lights: {}", e);
+            }
+        } else {
+            eprintln!("Failed to read ADC value");
+        }
+
+        if let Ok(msg) = rx.try_recv() {
             match msg {
                 Message::Start(st) => state.start = Some(st),
                 Message::End(et) => state.end = Some(et),
@@ -88,7 +113,17 @@ async fn main() {
                 }
             }
         }
+
+        tokio::time::sleep(Duration::from_millis(100)).await;
     }
+}
+
+fn read_adc_value(adc: &mut I2c) -> Result<i16, rppal::i2c::Error> {
+    let mut buffer = [0u8; 2];
+    adc.write(&[0x00])?;
+    adc.read(&mut buffer)?;
+
+    Ok(i16::from_be_bytes([buffer[0], buffer[1]]))
 }
 
 fn open(servo: &mut ContinuousServo) -> rppal::pwm::Result<()> {
