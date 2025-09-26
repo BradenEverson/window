@@ -19,7 +19,6 @@ use window::{
 
 const OPEN_CLOSE_INTERVAL: u64 = 10;
 const ADC_I2C_ADDRESS: u16 = 0x48;
-const ADS1115_CONFIG: [u8; 3] = [0x01, 0xC3, 0x83];
 
 #[tokio::main]
 async fn main() {
@@ -28,11 +27,10 @@ async fn main() {
     let mut state = State::default();
     let mut ring = NeoPixelRing::new("/dev/spidev0.0").expect("Failed to create NeoPixel ring");
 
+    // Initialize I2C for ADC
     let mut adc = I2c::new().expect("Failed to initialize I2C");
     adc.set_slave_address(ADC_I2C_ADDRESS)
         .expect("Failed to set I2C address");
-
-    adc.write(&ADS1115_CONFIG).expect("Failed to configure ADC");
 
     let (tx, mut rx) = tokio::sync::mpsc::channel(16);
 
@@ -59,29 +57,34 @@ async fn main() {
         }
     });
 
-    ring.light_em_up(0)
-        .expect("Failed to initialize ring lights");
+    for _ in 0..2 {
+        ring.light_em_up(0).expect("Light ;(");
+    }
 
     loop {
         let time = SimpleTime::now();
 
-        if let Ok(adc_value) = read_adc_value(&mut adc) {
-            let percent = (adc_value as f32 / 32767.0 * 100.0).min(100.0);
-            let leds_to_light = (percent / 100.0 * 12.0).round() as u8;
+        match read_adc_value(&mut adc) {
+            Ok(adc_value) => {
+                const MAX_ADC: u16 = 26390;
+                let raw_value = adc_value.abs() as u16;
 
-            println!(
-                "ADC Value: {}, Percent: {}%, LEDs: {}",
-                adc_value, percent, leds_to_light
-            );
+                let mapped = (MAX_ADC - raw_value) as f32 / MAX_ADC as f32;
 
-            if let Err(e) = ring.light_em_up(leds_to_light) {
-                eprintln!("Failed to update ring lights: {}", e);
+                println!("{mapped:.2}%");
             }
-        } else {
-            eprintln!("Failed to read ADC value");
+            Err(e) => {
+                eprintln!("Failed to read ADC value: {}", e);
+                if let Ok(new_adc) = I2c::new() {
+                    adc = new_adc;
+                    adc.set_slave_address(ADC_I2C_ADDRESS)
+                        .expect("Failed to set I2C address");
+                    println!("Reinitialized I2C connection");
+                }
+            }
         }
 
-        if let Ok(msg) = rx.try_recv() {
+        while let Ok(msg) = rx.try_recv() {
             match msg {
                 Message::Start(st) => state.start = Some(st),
                 Message::End(et) => state.end = Some(et),
@@ -113,17 +116,20 @@ async fn main() {
                 }
             }
         }
-
-        tokio::time::sleep(Duration::from_millis(100)).await;
+        tokio::time::sleep(Duration::from_millis(500)).await;
     }
 }
 
 fn read_adc_value(adc: &mut I2c) -> Result<i16, rppal::i2c::Error> {
+    let config: [u8; 3] = [0x01, 0xC3, 0x83];
+    adc.write(&config)?;
+    std::thread::sleep(Duration::from_millis(10));
+
     let mut buffer = [0u8; 2];
-    adc.write(&[0x00])?;
+    adc.write(&[0x00])?; // Set pointer to conversion register
     adc.read(&mut buffer)?;
 
-    Ok(i16::from_be_bytes([buffer[0], buffer[1]]))
+    Ok(i16::from_be_bytes(buffer))
 }
 
 fn open(servo: &mut ContinuousServo) -> rppal::pwm::Result<()> {
