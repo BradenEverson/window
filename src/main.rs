@@ -66,12 +66,16 @@ async fn main() {
 
         match read_adc_value(&mut adc) {
             Ok(adc_value) => {
-                const MAX_ADC: u16 = 26390;
+                const MAX_ADC: u16 = 26500;
                 let raw_value = adc_value.abs() as u16;
 
                 let mapped = (MAX_ADC - raw_value) as f32 / MAX_ADC as f32;
+                let led_count = (12f32 * mapped) as u8;
 
-                println!("{mapped:.2}%");
+                println!("{:.2}% - {led_count}", mapped * 100f32);
+                for _ in 0..2 {
+                    ring.light_em_up(led_count).expect("Light ;(");
+                }
             }
             Err(e) => {
                 eprintln!("Failed to read ADC value: {}", e);
