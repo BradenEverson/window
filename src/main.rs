@@ -70,7 +70,7 @@ async fn main() {
                 let raw_value = adc_value.abs() as u16;
 
                 let mapped = (MAX_ADC - raw_value) as f32 / MAX_ADC as f32;
-                let led_count = (12f32 * mapped) as u8;
+                let led_count = (12.2 * mapped) as u8;
 
                 println!("{:.2}% - {led_count}", mapped * 100f32);
                 for _ in 0..2 {
