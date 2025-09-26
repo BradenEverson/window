@@ -27,6 +27,10 @@ impl NeoPixelRing {
             rgb_values.push((255, 255, 255));
         }
 
+        for _ in leds..12 {
+            rgb_values.push((0, 0, 0));
+        }
+
         self.spi.write_rgb(&rgb_values)?;
         std::thread::sleep(Duration::from_millis(10));
         Ok(())
