@@ -18,7 +18,11 @@ impl NeoPixelRing {
         {
             let mut rgb_values = vec![];
             for _ in 0..leds {
-                rgb_values.push((255, 0, 0));
+                rgb_values.push((255, 255, 255));
+            }
+
+            for _ in 0..(12 - leds) {
+                rgb_values.push((0, 0, 0));
             }
 
             self.spi.write_rgb(&rgb_values)?
