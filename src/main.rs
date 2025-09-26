@@ -49,7 +49,7 @@ async fn main() {
         }
     });
 
-    ring.light_em_up(6).expect("sad");
+    ring.light_em_up(0).expect("sad");
 
     tokio::spawn(async move { loop {} });
 
