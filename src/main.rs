@@ -25,8 +25,8 @@ async fn main() {
     let mut servo =
         ContinuousServo::init(Channel::Pwm0).expect("Failed to create continuous servo");
     let mut state = State::default();
-    let mut ring = NeoPixelRing::new("/dev/spidev0.0").expect("Failed to create NeoPixel ring");
 
+    // Initialize I2C for ADC
     let mut adc = I2c::new().expect("Failed to initialize I2C");
     adc.set_slave_address(ADC_I2C_ADDRESS)
         .expect("Failed to set I2C address");
@@ -56,10 +56,6 @@ async fn main() {
         }
     });
 
-    for _ in 0..2 {
-        ring.light_em_up(0).expect("Light ;(");
-    }
-
     loop {
         let time = SimpleTime::now();
 
@@ -69,12 +65,12 @@ async fn main() {
                 let raw_value = adc_value.abs() as u16;
 
                 let mapped = (MAX_ADC - raw_value) as f32 / MAX_ADC as f32;
-                let led_count = (12.2 * mapped) as u8;
+                let led_count = (12f32 * mapped) as u8;
 
                 println!("{:.2}% - {led_count}", mapped * 100f32);
-                for _ in 0..2 {
-                    ring.light_em_up(led_count).expect("Light ;(");
-                }
+                let mut ring =
+                    NeoPixelRing::new("/dev/spidev0.0").expect("Failed to create NeoPixel ring");
+                ring.light_em_up(led_count).expect("Light ;(");
             }
             Err(e) => {
                 eprintln!("Failed to read ADC value: {}", e);
@@ -129,7 +125,7 @@ fn read_adc_value(adc: &mut I2c) -> Result<i16, rppal::i2c::Error> {
     std::thread::sleep(Duration::from_millis(10));
 
     let mut buffer = [0u8; 2];
-    adc.write(&[0x00])?;
+    adc.write(&[0x00])?; // Set pointer to conversion register
     adc.read(&mut buffer)?;
 
     Ok(i16::from_be_bytes(buffer))
