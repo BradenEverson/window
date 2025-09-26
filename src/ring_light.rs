@@ -17,6 +17,9 @@ impl NeoPixelRing {
     }
 
     pub fn light_em_up(&mut self, leds: u8) -> Result<(), String> {
+        self.spi.clear(12);
+        std::thread::sleep(Duration::from_millis(10));
+
         let leds = leds.min(12);
         let mut rgb_values = vec![];
 
