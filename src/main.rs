@@ -8,13 +8,13 @@ use rppal::pwm::Channel;
 use tokio::net::TcpListener;
 use window::{
     cts_servo::ContinuousServo,
+    ring_light::NeoPixelRing,
     service::{
         Message, WindowService,
         state::{State, WindowState},
     },
     simple_time::SimpleTime,
 };
-use ws2818_rgb_led_spi_driver::{adapter_gen::WS28xxAdapter, adapter_spi::WS28xxSpiAdapter};
 
 const OPEN_CLOSE_INTERVAL: u64 = 10;
 
@@ -22,6 +22,7 @@ const OPEN_CLOSE_INTERVAL: u64 = 10;
 async fn main() {
     let mut servo = ContinuousServo::init(Channel::Pwm0).expect("Failed to create continous servo");
     let mut state = State::default();
+    let mut ring = NeoPixelRing::new("/dev/spidev0.0").expect(":(");
 
     let (tx, mut rx) = tokio::sync::mpsc::channel(16);
 
@@ -48,17 +49,9 @@ async fn main() {
         }
     });
 
-    let mut adapter = WS28xxSpiAdapter::new("/dev/spidev0.0").expect("No SPI device");
+    ring.light_em_up(6).expect("sad");
 
-    {
-        let mut rgb_values = vec![];
-        rgb_values.push((255, 0, 0));
-        rgb_values.push((0, 255, 0));
-        rgb_values.push((0, 0, 255));
-        adapter
-            .write_rgb(&rgb_values)
-            .expect("Failed to set the 3 leds");
-    }
+    tokio::spawn(async move { loop {} });
 
     loop {
         let time = SimpleTime::now();
