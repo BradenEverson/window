@@ -1,32 +1,43 @@
 //! Ring Light Impl
 
-use ws2818_rgb_led_spi_driver::{adapter_gen::WS28xxAdapter, adapter_spi::WS28xxSpiAdapter};
+use rppal::pwm::{Channel, Polarity, Pwm};
 
-/// Control for a neopixel ring
+/// Control for a neopixel ring using PWM
 pub struct NeoPixelRing {
-    /// The underlying spi device
-    spi: WS28xxSpiAdapter,
+    /// The PWM channel for controlling brightness
+    pwm: Pwm,
+    /// Number of LEDs in the ring
+    led_count: usize,
 }
 
 impl NeoPixelRing {
-    pub fn new(dev: &str) -> Result<Self, String> {
-        let spi = WS28xxSpiAdapter::new(dev)?;
-        Ok(Self { spi })
+    pub fn new(led_count: usize) -> rppal::pwm::Result<Self> {
+        let pwm = Pwm::with_frequency(Channel::Pwm1, 800_000.0, 0.5, Polarity::Normal, true)?;
+
+        Ok(Self { pwm, led_count })
     }
 
-    pub fn light_em_up(&mut self, leds: u8) -> Result<(), String> {
-        let leds = leds.min(12);
-        let mut rgb_values = vec![];
-
-        for _ in 0..leds {
-            rgb_values.push((255, 255, 255));
-        }
-
-        for _ in leds..12 {
-            rgb_values.push((0, 0, 0));
-        }
-
-        self.spi.write_rgb(&rgb_values)?;
+    pub fn set_brightness(&mut self, brightness: f64) -> Result<(), Box<dyn std::error::Error>> {
+        let brightness = brightness.clamp(0.0, 1.0);
+        self.pwm.set_duty_cycle(brightness)?;
         Ok(())
+    }
+
+    pub fn light_em_up(&mut self, leds: u8) -> Result<(), Box<dyn std::error::Error>> {
+        let leds = leds.min(self.led_count as u8);
+
+        if leds > 0 {
+            self.set_brightness(1.0)?;
+        } else {
+            self.set_brightness(0.0)?;
+        }
+
+        Ok(())
+    }
+}
+
+impl Drop for NeoPixelRing {
+    fn drop(&mut self) {
+        let _ = self.set_brightness(0.0);
     }
 }

@@ -56,7 +56,7 @@ async fn main() {
         }
     });
 
-    let mut ring = NeoPixelRing::new("/dev/spidev0.0").expect("Failed to create NeoPixel ring");
+    let mut ring = NeoPixelRing::new(12).expect("Failed to create NeoPixel ring");
     ring.light_em_up(0).expect("Light ;(");
     let mut on = 0;
 
