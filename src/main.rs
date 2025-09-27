@@ -56,7 +56,7 @@ async fn main() {
         }
     });
 
-    let mut ring = NeoPixelRing::new(12).expect("Failed to create NeoPixel ring");
+    let mut ring = NeoPixelRing::new(13, 12).expect("Failed to create NeoPixel ring");
     ring.light_em_up(0).expect("Light ;(");
     let mut on = 0;
 
@@ -69,7 +69,7 @@ async fn main() {
                 let raw_value = adc_value.abs() as u16;
 
                 let mapped = (MAX_ADC - raw_value) as f32 / MAX_ADC as f32;
-                let led_count = (12f32 * mapped) as u8;
+                let led_count = (12f32 * mapped) as usize;
 
                 println!("{:.2}% - {led_count}", mapped * 100f32);
                 if on != led_count {

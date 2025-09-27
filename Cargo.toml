@@ -11,7 +11,8 @@ hyper = { version = "1.4.1", features = ["full"] }
 hyper-tungstenite = "0.14.0"
 hyper-util = { version = "0.1.7", features = ["tokio", "full"] }
 rppal = "0.22.1"
+rs_ws281x = "0.5.1"
 tokio = { version = "1.39.2", features = ["full"] }
 tokio-tungstenite = "0.23.1"
 url = "2.5.7"
-ws2818-rgb-led-spi-driver = "2.0.0"
+ws281x = "0.1.0"
