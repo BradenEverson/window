@@ -80,7 +80,6 @@ async fn main() {
                     }
 
                     ring.light_em_up(on).expect("Light ;(");
-                    std::thread::sleep(Duration::from_millis(10));
                 }
             }
             Err(e) => {
