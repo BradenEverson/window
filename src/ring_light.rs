@@ -21,6 +21,7 @@ impl NeoPixelRing {
                     .pin(pin)
                     .count(count)
                     .strip_type(StripType::Ws2812)
+                    .brightness(128)
                     .build(),
             )
             .build()?;
@@ -38,7 +39,7 @@ impl NeoPixelRing {
 
         for (idx, led) in leds.iter_mut().enumerate() {
             if idx < count {
-                *led = [255, 255, 255, 0];
+                *led = [255, 0, 0, 0];
             } else {
                 *led = [0, 0, 0, 0];
             }
