@@ -72,17 +72,15 @@ async fn main() {
                 let led_count = (12.2 * mapped) as usize;
 
                 println!("{:.2}% - {led_count}", mapped * 100f32);
-                if on != led_count {
-                    while on != led_count {
-                        if led_count > on {
-                            on += 1;
-                        } else {
-                            on -= 1;
-                        }
-
-                        ring.light_em_up(on).expect("Light ;(");
-                        std::thread::sleep(Duration::from_millis(10));
+                while on != led_count {
+                    if led_count > on {
+                        on += 1;
+                    } else {
+                        on -= 1;
                     }
+
+                    ring.light_em_up(on).expect("Light ;(");
+                    std::thread::sleep(Duration::from_millis(10));
                 }
             }
             Err(e) => {
