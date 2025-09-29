@@ -66,7 +66,7 @@ async fn main() {
     tokio::spawn(async move {
         let mut t = ticks_here.lock().await;
         *t = (*t).wrapping_add(1);
-        tokio::time::sleep(Duration::from_millis(100));
+        tokio::time::sleep(Duration::from_millis(100)).await;
     });
 
     tokio::spawn(async move {
