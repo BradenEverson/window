@@ -67,7 +67,7 @@ async fn main() {
         loop {
             let mut t = ticks_here.lock().await;
             *t = (*t).wrapping_add(1);
-            tokio::time::sleep(Duration::from_millis(100)).await;
+            tokio::time::sleep(Duration::from_millis(750)).await;
         }
     });
 
