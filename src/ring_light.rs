@@ -50,13 +50,12 @@ impl NeoPixelRing {
 
         for (idx, led) in leds.iter_mut().enumerate() {
             if idx < count {
-                *led = [255, 0, 0, 0];
+                *led = [self.brightness, 0, 0, 0];
             } else {
                 *led = [0, 0, 0, 0];
             }
         }
 
-        self.controller.set_brightness(1, self.brightness);
         self.controller.render()
     }
 }
