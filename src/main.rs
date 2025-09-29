@@ -92,7 +92,10 @@ async fn main() {
 
                 let led_count = (12.2 * mapped) as usize;
 
-                println!("{:.2}% - {led_count}", mapped * 100f32);
+                println!(
+                    "{:.2}% - {led_count} - {open_close_interval}s",
+                    mapped * 100f32
+                );
                 let mut on_m = on.lock().await;
                 *on_m = led_count;
             }
