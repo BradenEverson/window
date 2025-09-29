@@ -10,6 +10,8 @@ pub struct NeoPixelRing {
     count: usize,
 }
 
+unsafe impl Send for NeoPixelRing {}
+
 impl NeoPixelRing {
     pub fn new(pin: i32, count: i32) -> Result<Self, rs_ws281x::WS2811Error> {
         let controller = ControllerBuilder::new()

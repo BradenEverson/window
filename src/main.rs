@@ -1,12 +1,12 @@
 //! Main webserver driver
 
-use std::time::Duration;
+use std::{sync::Arc, time::Duration};
 
 use hyper::server::conn::http1;
 use hyper_util::rt::TokioIo;
 use rppal::i2c::I2c;
 use rppal::pwm::Channel;
-use tokio::net::TcpListener;
+use tokio::{net::TcpListener, sync::Mutex};
 use window::{
     cts_servo::ContinuousServo,
     ring_light::NeoPixelRing,
@@ -17,11 +17,12 @@ use window::{
     simple_time::SimpleTime,
 };
 
-const OPEN_CLOSE_INTERVAL: u64 = 10;
 const ADC_I2C_ADDRESS: u16 = 0x48;
 
 #[tokio::main]
 async fn main() {
+    let mut open_close_interval = 10;
+
     let mut servo =
         ContinuousServo::init(Channel::Pwm0).expect("Failed to create continuous servo");
     let mut state = State::default();
@@ -56,9 +57,27 @@ async fn main() {
         }
     });
 
-    let mut ring = NeoPixelRing::new(13, 12).expect("Failed to create NeoPixel ring");
-    ring.light_em_up(0).expect("Light ;(");
-    let mut on = 0;
+    let on = Arc::new(Mutex::new(0));
+    let mut on_count = 0;
+
+    let on_c = on.clone();
+    tokio::spawn(async move {
+        let mut ring = NeoPixelRing::new(13, 12).expect("Failed to create NeoPixel ring");
+        ring.light_em_up(0).expect("Light ;(");
+
+        loop {
+            let on_m = on_c.lock().await;
+            while on_count != *on_m {
+                if *on_m > on_count {
+                    on_count += 1;
+                } else {
+                    on_count -= 1;
+                }
+
+                ring.light_em_up(on_count).expect("Light ;(");
+            }
+        }
+    });
 
     loop {
         let time = SimpleTime::now();
@@ -69,18 +88,13 @@ async fn main() {
                 let raw_value = adc_value.abs() as u16;
 
                 let mapped = (MAX_ADC - raw_value) as f32 / MAX_ADC as f32;
+                open_close_interval = (open_close_interval as f32 * mapped) as u64;
+
                 let led_count = (12.2 * mapped) as usize;
 
                 println!("{:.2}% - {led_count}", mapped * 100f32);
-                while on != led_count {
-                    if led_count > on {
-                        on += 1;
-                    } else {
-                        on -= 1;
-                    }
-
-                    ring.light_em_up(on).expect("Light ;(");
-                }
+                let mut on_m = on.lock().await;
+                *on_m = led_count;
             }
             Err(e) => {
                 eprintln!("Failed to read ADC value: {}", e);
@@ -101,12 +115,12 @@ async fn main() {
                     WindowState::Opened => {
                         println!("Close");
                         state.current = WindowState::Closed;
-                        close(&mut servo).expect("Failed to close");
+                        close(&mut servo, open_close_interval).expect("Failed to close");
                     }
                     WindowState::Closed => {
                         println!("Open");
                         state.current = WindowState::Opened;
-                        open(&mut servo).expect("Failed to open");
+                        open(&mut servo, open_close_interval).expect("Failed to open");
                     }
                 },
             };
@@ -116,11 +130,11 @@ async fn main() {
             if let Some(end) = state.end {
                 if time == start && state.current == WindowState::Closed {
                     println!("Opening");
-                    open(&mut servo).expect("Failed to open");
+                    open(&mut servo, open_close_interval).expect("Failed to open");
                     state.current = WindowState::Opened
                 } else if time == end && state.current == WindowState::Opened {
                     println!("Closing");
-                    close(&mut servo).expect("Failed to close");
+                    close(&mut servo, open_close_interval).expect("Failed to close");
                     state.current = WindowState::Closed
                 }
             }
@@ -141,14 +155,14 @@ fn read_adc_value(adc: &mut I2c) -> Result<i16, rppal::i2c::Error> {
     Ok(i16::from_be_bytes(buffer))
 }
 
-fn open(servo: &mut ContinuousServo) -> rppal::pwm::Result<()> {
+fn open(servo: &mut ContinuousServo, time: u64) -> rppal::pwm::Result<()> {
     servo.move_clockwise()?;
-    std::thread::sleep(Duration::from_secs(OPEN_CLOSE_INTERVAL));
+    std::thread::sleep(Duration::from_secs(time));
     servo.stop()
 }
 
-fn close(servo: &mut ContinuousServo) -> rppal::pwm::Result<()> {
+fn close(servo: &mut ContinuousServo, time: u64) -> rppal::pwm::Result<()> {
     servo.move_counterclockwise()?;
-    std::thread::sleep(Duration::from_secs(OPEN_CLOSE_INTERVAL));
+    std::thread::sleep(Duration::from_secs(time));
     servo.stop()
 }
