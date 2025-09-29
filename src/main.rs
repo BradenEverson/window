@@ -66,9 +66,11 @@ async fn main() {
     let ticks_here = ticks.clone();
     tokio::spawn(async move {
         loop {
-            let mut t = ticks_here.lock().await;
-            *t = (*t).wrapping_add(1);
-            tokio::time::sleep(Duration::from_millis(750)).await;
+            {
+                let mut t = ticks_here.lock().await;
+                *t = (*t).wrapping_add(1);
+            }
+            tokio::time::sleep(Duration::from_millis(200)).await;
         }
     });
 
