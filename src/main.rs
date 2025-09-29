@@ -89,7 +89,7 @@ async fn main() {
     loop {
         let time = SimpleTime::now();
 
-        match read_adc_value(&mut adc) {
+        match read_adc_value(&mut adc).await {
             Ok(adc_value) => {
                 const MAX_ADC: u16 = 26500;
                 let raw_value = adc_value.abs() as u16;
@@ -125,12 +125,16 @@ async fn main() {
                     WindowState::Opened => {
                         println!("Close");
                         state.current = WindowState::Closed;
-                        close(&mut servo, open_close_interval).expect("Failed to close");
+                        close(&mut servo, open_close_interval)
+                            .await
+                            .expect("Failed to close");
                     }
                     WindowState::Closed => {
                         println!("Open");
                         state.current = WindowState::Opened;
-                        open(&mut servo, open_close_interval).expect("Failed to open");
+                        open(&mut servo, open_close_interval)
+                            .await
+                            .expect("Failed to open");
                     }
                 },
             };
@@ -140,11 +144,15 @@ async fn main() {
             if let Some(end) = state.end {
                 if time == start && state.current == WindowState::Closed {
                     println!("Opening");
-                    open(&mut servo, open_close_interval).expect("Failed to open");
+                    open(&mut servo, open_close_interval)
+                        .await
+                        .expect("Failed to open");
                     state.current = WindowState::Opened
                 } else if time == end && state.current == WindowState::Opened {
                     println!("Closing");
-                    close(&mut servo, open_close_interval).expect("Failed to close");
+                    close(&mut servo, open_close_interval)
+                        .await
+                        .expect("Failed to close");
                     state.current = WindowState::Closed
                 }
             }
@@ -153,10 +161,10 @@ async fn main() {
     }
 }
 
-fn read_adc_value(adc: &mut I2c) -> Result<i16, rppal::i2c::Error> {
+async fn read_adc_value(adc: &mut I2c) -> Result<i16, rppal::i2c::Error> {
     let config: [u8; 3] = [0x01, 0xC3, 0x83];
     adc.write(&config)?;
-    std::thread::sleep(Duration::from_millis(10));
+    tokio::time::sleep(Duration::from_millis(10)).await;
 
     let mut buffer = [0u8; 2];
     adc.write(&[0x00])?;
@@ -165,14 +173,14 @@ fn read_adc_value(adc: &mut I2c) -> Result<i16, rppal::i2c::Error> {
     Ok(i16::from_be_bytes(buffer))
 }
 
-fn open(servo: &mut ContinuousServo, time: u64) -> rppal::pwm::Result<()> {
+async fn open(servo: &mut ContinuousServo, time: u64) -> rppal::pwm::Result<()> {
     servo.move_clockwise()?;
-    std::thread::sleep(Duration::from_secs(time));
+    tokio::time::sleep(Duration::from_secs(time)).await;
     servo.stop()
 }
 
-fn close(servo: &mut ContinuousServo, time: u64) -> rppal::pwm::Result<()> {
+async fn close(servo: &mut ContinuousServo, time: u64) -> rppal::pwm::Result<()> {
     servo.move_counterclockwise()?;
-    std::thread::sleep(Duration::from_secs(time));
+    tokio::time::sleep(Duration::from_secs(time)).await;
     servo.stop()
 }
