@@ -34,6 +34,13 @@ impl NeoPixelRing {
         })
     }
 
+    pub fn animation_tick(&mut self, tick: u32) {
+        let t = tick as f32;
+        let y = ((t.cos() + 1f32) / 4f32) + 0.5;
+        let brightness = (255f32 * y) as u8;
+        self.controller.set_brightness(1, brightness)
+    }
+
     pub fn light_em_up(&mut self, count: usize) -> Result<(), rs_ws281x::WS2811Error> {
         let count = count.min(self.count);
 
