@@ -38,18 +38,8 @@ impl NeoPixelRing {
         })
     }
 
-    pub fn set_day(&mut self, day: bool) {
-        self.day = day;
-    }
-
     pub fn animation_tick(&mut self, tick: u32) {
-        if self.day && self.curr_color[0] != 0 {
-            self.curr_color[0] -= 1;
-        } else if !self.day && self.curr_color[1] != 0 {
-            self.curr_color[1] -= 1;
-            self.curr_color[2] -= 1;
-        }
-        let t = tick as f32;
+        let t = tick as f32 * 0.5;
         let y = ((t.cos() + 1f32) / 4f32) + 0.5;
         let brightness = (255f32 * y) as u8;
         if self.day {
