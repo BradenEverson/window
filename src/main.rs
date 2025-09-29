@@ -58,24 +58,18 @@ async fn main() {
     });
 
     let on = Arc::new(Mutex::new(0));
-    let mut on_count = 0;
 
     let on_c = on.clone();
+    let mut ticks = 0;
     tokio::spawn(async move {
         let mut ring = NeoPixelRing::new(13, 12).expect("Failed to create NeoPixel ring");
         ring.light_em_up(0).expect("Light ;(");
 
         loop {
             let on_m = on_c.lock().await;
-            while on_count != *on_m {
-                if *on_m > on_count {
-                    on_count += 1;
-                } else {
-                    on_count -= 1;
-                }
-
-                ring.light_em_up(on_count).expect("Light ;(");
-            }
+            ring.update_ring(*on_m, false, ticks)
+                .expect("Failed to do animation");
+            ticks = ticks.wrapping_add(1);
         }
     });
 
@@ -152,7 +146,7 @@ fn read_adc_value(adc: &mut I2c) -> Result<i16, rppal::i2c::Error> {
     std::thread::sleep(Duration::from_millis(10));
 
     let mut buffer = [0u8; 2];
-    adc.write(&[0x00])?; // Set pointer to conversion register
+    adc.write(&[0x00])?;
     adc.read(&mut buffer)?;
 
     Ok(i16::from_be_bytes(buffer))
