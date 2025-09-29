@@ -74,10 +74,8 @@ async fn main() {
         ring.light_em_up(0).expect("Light ;(");
 
         loop {
-            let ticks = ticks.lock().await;
             let on_m = on_c.lock().await;
-            ring.update_ring(*on_m, false, *ticks)
-                .expect("Failed to do animation");
+            ring.light_em_up(*on_m).expect("Failed to do animation");
         }
     });
 
