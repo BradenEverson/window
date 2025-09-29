@@ -39,8 +39,8 @@ impl NeoPixelRing {
     }
 
     pub fn animation_tick(&mut self, tick: u32) {
-        let t = tick as f32 * 0.5;
-        let y = ((t.cos() + 1f32) / 4f32) + 0.5;
+        let t = tick as f32 * 0.1;
+        let y = ((t.cos() + 1f32) / 2.7) + 0.25;
         let brightness = (255f32 * y) as u8;
         if self.day {
             self.curr_color[1] = brightness;
