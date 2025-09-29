@@ -9,6 +9,7 @@ pub struct NeoPixelRing {
     controller: Controller,
     count: usize,
     curr_color: [u8; 4],
+    day: bool,
 }
 
 unsafe impl Send for NeoPixelRing {}
@@ -33,14 +34,30 @@ impl NeoPixelRing {
             controller,
             count: count as usize,
             curr_color: [255, 0, 0, 0],
+            day: false,
         })
     }
 
+    pub fn set_day(&mut self, day: bool) {
+        self.day = day;
+    }
+
     pub fn animation_tick(&mut self, tick: u32) {
+        if self.day && self.curr_color[0] != 0 {
+            self.curr_color[0] -= 1;
+        } else if !self.day && self.curr_color[1] != 0 {
+            self.curr_color[1] -= 1;
+            self.curr_color[2] -= 1;
+        }
         let t = tick as f32;
         let y = ((t.cos() + 1f32) / 4f32) + 0.5;
         let brightness = (255f32 * y) as u8;
-        self.curr_color[0] = brightness;
+        if self.day {
+            self.curr_color[1] = brightness;
+            self.curr_color[2] = brightness;
+        } else {
+            self.curr_color[0] = brightness;
+        }
     }
 
     pub fn light_em_up(&mut self, count: usize) -> Result<(), rs_ws281x::WS2811Error> {

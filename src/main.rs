@@ -61,6 +61,7 @@ async fn main() {
 
     let on_c = on.clone();
     let ticks: Arc<Mutex<u32>> = Arc::new(Mutex::new(0));
+    let day: Arc<Mutex<bool>> = Arc::new(Mutex::new(false));
 
     let ticks_here = ticks.clone();
     tokio::spawn(async move {
@@ -71,6 +72,7 @@ async fn main() {
         }
     });
 
+    let dc = day.clone();
     tokio::spawn(async move {
         let mut ring = NeoPixelRing::new(13, 12).expect("Failed to create NeoPixel ring");
         ring.light_em_up(0).expect("Light ;(");
@@ -78,6 +80,9 @@ async fn main() {
         loop {
             let on_m = on_c.lock().await;
             let tick = ticks.lock().await;
+            let day = dc.lock().await;
+
+            ring.set_day(*day);
             ring.animation_tick(*tick);
             ring.light_em_up(*on_m).expect("Failed to do animation");
         }
@@ -120,11 +125,19 @@ async fn main() {
                 Message::End(et) => state.end = Some(et),
                 Message::Toggle => match state.current {
                     WindowState::Opened => {
+                        {
+                            let mut day = day.lock().await;
+                            *day = false;
+                        }
                         println!("Close");
                         state.current = WindowState::Closed;
                         close(&mut servo, open_close_interval).expect("Failed to close");
                     }
                     WindowState::Closed => {
+                        {
+                            let mut day = day.lock().await;
+                            *day = true;
+                        }
                         println!("Open");
                         state.current = WindowState::Opened;
                         open(&mut servo, open_close_interval).expect("Failed to open");
@@ -136,10 +149,18 @@ async fn main() {
         if let Some(start) = state.start {
             if let Some(end) = state.end {
                 if time == start && state.current == WindowState::Closed {
+                    {
+                        let mut day = day.lock().await;
+                        *day = true;
+                    }
                     println!("Opening");
                     open(&mut servo, open_close_interval).expect("Failed to open");
                     state.current = WindowState::Opened
                 } else if time == end && state.current == WindowState::Opened {
+                    {
+                        let mut day = day.lock().await;
+                        *day = false;
+                    }
                     println!("Closing");
                     close(&mut servo, open_close_interval).expect("Failed to close");
                     state.current = WindowState::Closed
