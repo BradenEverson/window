@@ -69,8 +69,6 @@ async fn main() {
         tokio::time::sleep(Duration::from_millis(100)).await;
     });
 
-    let mut on_track = 0;
-
     tokio::spawn(async move {
         let mut ring = NeoPixelRing::new(13, 12).expect("Failed to create NeoPixel ring");
         ring.light_em_up(0).expect("Light ;(");
@@ -78,11 +76,8 @@ async fn main() {
         loop {
             let on_m = on_c.lock().await;
             let tick = ticks.lock().await;
-            if *on_m != on_track {
-                on_track = *on_m;
-                ring.light_em_up(on_track).expect("Failed to do animation");
-            }
             ring.animation_tick(*tick);
+            ring.light_em_up(*on_m).expect("Failed to do animation");
         }
     });
 

@@ -8,6 +8,7 @@ use rs_ws281x::StripType;
 pub struct NeoPixelRing {
     controller: Controller,
     count: usize,
+    brightness: u8,
 }
 
 unsafe impl Send for NeoPixelRing {}
@@ -31,6 +32,7 @@ impl NeoPixelRing {
         Ok(Self {
             controller,
             count: count as usize,
+            brightness: 128,
         })
     }
 
@@ -38,7 +40,7 @@ impl NeoPixelRing {
         let t = tick as f32;
         let y = (t.cos() + 1f32) / 2f32;
         let brightness = (255f32 * y) as u8;
-        self.controller.set_brightness(1, brightness)
+        self.brightness = brightness;
     }
 
     pub fn light_em_up(&mut self, count: usize) -> Result<(), rs_ws281x::WS2811Error> {
@@ -54,6 +56,7 @@ impl NeoPixelRing {
             }
         }
 
+        self.controller.set_brightness(1, self.brightness);
         self.controller.render()
     }
 }
