@@ -60,16 +60,24 @@ async fn main() {
     let on = Arc::new(Mutex::new(0));
 
     let on_c = on.clone();
-    let mut ticks = 0;
+    let ticks: Arc<Mutex<u32>> = Arc::new(Mutex::new(0));
+
+    let ticks_here = ticks.clone();
+    tokio::spawn(async move {
+        let mut t = ticks_here.lock().await;
+        *t = (*t).wrapping_add(1);
+        tokio::time::sleep(Duration::from_millis(100));
+    });
+
     tokio::spawn(async move {
         let mut ring = NeoPixelRing::new(13, 12).expect("Failed to create NeoPixel ring");
         ring.light_em_up(0).expect("Light ;(");
 
         loop {
+            let ticks = ticks.lock().await;
             let on_m = on_c.lock().await;
-            ring.update_ring(*on_m, false, ticks)
+            ring.update_ring(*on_m, false, *ticks)
                 .expect("Failed to do animation");
-            ticks = ticks.wrapping_add(1);
         }
     });
 
