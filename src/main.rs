@@ -86,79 +86,83 @@ async fn main() {
         }
     });
 
-    loop {
-        let time = SimpleTime::now();
+    tokio::spawn(async move {
+        loop {
+            let time = SimpleTime::now();
 
-        match read_adc_value(&mut adc).await {
-            Ok(adc_value) => {
-                const MAX_ADC: u16 = 26500;
-                let raw_value = adc_value.abs() as u16;
+            match read_adc_value(&mut adc).await {
+                Ok(adc_value) => {
+                    const MAX_ADC: u16 = 26500;
+                    let raw_value = adc_value.abs() as u16;
 
-                let mapped = (MAX_ADC - raw_value) as f32 / MAX_ADC as f32;
-                open_close_interval = (15f32 * mapped) as u64;
+                    let mapped = (MAX_ADC - raw_value) as f32 / MAX_ADC as f32;
+                    open_close_interval = (15f32 * mapped) as u64;
 
-                let led_count = (12.2 * mapped) as usize;
+                    let led_count = (12.2 * mapped) as usize;
 
-                println!(
-                    "{:.2}% - {led_count} - {open_close_interval}s",
-                    mapped * 100f32
-                );
-                let mut on_m = on.lock().await;
-                *on_m = led_count;
-            }
-            Err(e) => {
-                eprintln!("Failed to read ADC value: {}", e);
-                if let Ok(new_adc) = I2c::new() {
-                    adc = new_adc;
-                    adc.set_slave_address(ADC_I2C_ADDRESS)
-                        .expect("Failed to set I2C address");
-                    println!("Reinitialized I2C connection");
+                    println!(
+                        "{:.2}% - {led_count} - {open_close_interval}s",
+                        mapped * 100f32
+                    );
+                    let mut on_m = on.lock().await;
+                    *on_m = led_count;
+                }
+                Err(e) => {
+                    eprintln!("Failed to read ADC value: {}", e);
+                    if let Ok(new_adc) = I2c::new() {
+                        adc = new_adc;
+                        adc.set_slave_address(ADC_I2C_ADDRESS)
+                            .expect("Failed to set I2C address");
+                        println!("Reinitialized I2C connection");
+                    }
                 }
             }
-        }
 
-        while let Ok(msg) = rx.try_recv() {
-            match msg {
-                Message::Start(st) => state.start = Some(st),
-                Message::End(et) => state.end = Some(et),
-                Message::Toggle => match state.current {
-                    WindowState::Opened => {
-                        println!("Close");
-                        state.current = WindowState::Closed;
-                        close(&mut servo, open_close_interval)
-                            .await
-                            .expect("Failed to close");
-                    }
-                    WindowState::Closed => {
-                        println!("Open");
-                        state.current = WindowState::Opened;
+            while let Ok(msg) = rx.try_recv() {
+                match msg {
+                    Message::Start(st) => state.start = Some(st),
+                    Message::End(et) => state.end = Some(et),
+                    Message::Toggle => match state.current {
+                        WindowState::Opened => {
+                            println!("Close");
+                            state.current = WindowState::Closed;
+                            close(&mut servo, open_close_interval)
+                                .await
+                                .expect("Failed to close");
+                        }
+                        WindowState::Closed => {
+                            println!("Open");
+                            state.current = WindowState::Opened;
+                            open(&mut servo, open_close_interval)
+                                .await
+                                .expect("Failed to open");
+                        }
+                    },
+                };
+            }
+
+            if let Some(start) = state.start {
+                if let Some(end) = state.end {
+                    if time == start && state.current == WindowState::Closed {
+                        println!("Opening");
                         open(&mut servo, open_close_interval)
                             .await
                             .expect("Failed to open");
+                        state.current = WindowState::Opened
+                    } else if time == end && state.current == WindowState::Opened {
+                        println!("Closing");
+                        close(&mut servo, open_close_interval)
+                            .await
+                            .expect("Failed to close");
+                        state.current = WindowState::Closed
                     }
-                },
-            };
-        }
-
-        if let Some(start) = state.start {
-            if let Some(end) = state.end {
-                if time == start && state.current == WindowState::Closed {
-                    println!("Opening");
-                    open(&mut servo, open_close_interval)
-                        .await
-                        .expect("Failed to open");
-                    state.current = WindowState::Opened
-                } else if time == end && state.current == WindowState::Opened {
-                    println!("Closing");
-                    close(&mut servo, open_close_interval)
-                        .await
-                        .expect("Failed to close");
-                    state.current = WindowState::Closed
                 }
             }
+            tokio::time::sleep(Duration::from_millis(500)).await;
         }
-        tokio::time::sleep(Duration::from_millis(500)).await;
-    }
+    });
+
+    loop {}
 }
 
 async fn read_adc_value(adc: &mut I2c) -> Result<i16, rppal::i2c::Error> {
