@@ -88,7 +88,7 @@ async fn main() {
                 let raw_value = adc_value.abs() as u16;
 
                 let mapped = (MAX_ADC - raw_value) as f32 / MAX_ADC as f32;
-                open_close_interval = (open_close_interval as f32 * mapped) as u64;
+                open_close_interval = (15f32 * mapped) as u64;
 
                 let led_count = (12.2 * mapped) as usize;
 
